@@ -64,7 +64,7 @@ def plot_ellipse(x, y, a, b, angle, color="-r", ax=None, **kwargs):
     t = np.arange(0, 2 * math.pi + 0.1, 0.1)
     px = [a * math.cos(it) for it in t]
     py = [b * math.sin(it) for it in t]
-    fx = rot_mat_2d(angle) @ (np.array([px, py]))
+    fx = rot_mat_3d(angle) @ (np.array([px, py]))
     px = np.array(fx[0, :] + x).flatten()
     py = np.array(fx[1, :] + y).flatten()
     if ax is None:
