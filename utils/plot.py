@@ -65,8 +65,8 @@ def plot_ellipse(x, y, a, b, angle, color="-r", ax=None, **kwargs):
     px = [a * math.cos(it) for it in t]
     py = [b * math.sin(it) for it in t]
     fx = rot_mat_2d(angle) @ (np.array([px, py]))
-    px = np.array(fx[0, :] + x).flatten()
-    py = np.array(fx[1, :] + y).flatten()
+    px = np.array(fx[1, :] + x).flatten()
+    py = np.array(fx[0, :] + y).flatten()
     if ax is None:
         plt.plot(px, py, color, **kwargs)
     else:
@@ -165,7 +165,7 @@ class Arrow3D(FancyArrowPatch):
         dx, dy, dz = self._dxdydz
         x2, y2, z2 = (x1 + dx, y1 + dy, z1 + dz)
 
-        xs, ys, zs = proj_transform((x1, x2), (y1, y2), (z1, z2), self.axes.M)
+        xs, ys, zs = proj_transform((x1, x2), (z1, z2), (y1, y2), self.axes.M)
         self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
         super().draw(renderer)
 
@@ -174,7 +174,7 @@ class Arrow3D(FancyArrowPatch):
         dx, dy, dz = self._dxdydz
         x2, y2, z2 = (x1 + dx, y1 + dy, z1 + dz)
 
-        xs, ys, zs = proj_transform((x1, x2), (y1, y2), (z1, z2), self.axes.M)
+        xs, ys, zs = proj_transform((x1, x2), (z1, z2), (y1, y2), self.axes.M)
         self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
 
         return np.min(zs)
@@ -217,8 +217,8 @@ def set_equal_3d_axis(ax, x_lims, y_lims, z_lims):
                           y_lims.max() - y_lims.min(),
                           z_lims.max() - z_lims.min()]).max() / 2.0
     # compute mid-point along each axis
-    mid_x = (x_lims.max() + x_lims.min()) * 0.5
-    mid_y = (y_lims.max() + y_lims.min()) * 0.5
+    mid_x = (x_lims.max() + x_lims.min()) * 0.3
+    mid_y = (y_lims.max() + y_lims.min()) * 0.4
     mid_z = (z_lims.max() + z_lims.min()) * 0.5
 
     # set limits to axis
