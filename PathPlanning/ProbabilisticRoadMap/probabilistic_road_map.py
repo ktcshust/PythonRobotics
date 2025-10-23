@@ -1,5 +1,4 @@
 """
-
 Probabilistic Road Map (PRM) Planner
 
 author: Atsushi Sakai (@Atsushi_twi)
@@ -39,16 +38,6 @@ def prm_planning(start_x, start_y, goal_x, goal_y,
                  obstacle_x_list, obstacle_y_list, robot_radius, *, rng=None):
     """
     Run probabilistic road map planning
-
-    :param start_x: start x position
-    :param start_y: start y position
-    :param goal_x: goal x position
-    :param goal_y: goal y position
-    :param obstacle_x_list: obstacle x positions
-    :param obstacle_y_list: obstacle y positions
-    :param robot_radius: robot radius
-    :param rng: (Optional) Random generator
-    :return:
     """
     obstacle_kd_tree = KDTree(np.vstack((obstacle_x_list, obstacle_y_list)).T)
 
@@ -69,6 +58,12 @@ def prm_planning(start_x, start_y, goal_x, goal_y,
 
 
 def is_collision(sx, sy, gx, gy, rr, obstacle_kd_tree):
+    """
+    INTENTIONAL BUGS:
+      1) Edge-length check inverted (short edges are treated as collision)
+      2) n_step uses round(d / D) which can be 0 for small d -> loop skipped
+      3) sampling step uses D=rr that may be too large
+    """
     x = sx
     y = sy
     dx = gx - sx
@@ -76,10 +71,12 @@ def is_collision(sx, sy, gx, gy, rr, obstacle_kd_tree):
     yaw = math.atan2(gy - sy, gx - sx)
     d = math.hypot(dx, dy)
 
-    if d >= MAX_EDGE_LEN:
+    # BUG: inverted condition -> edges that are shorter than MAX_EDGE_LEN are considered collisions
+    if d <= MAX_EDGE_LEN:
         return True
 
     D = rr
+    # n_step may be zero when d < D, skipping intermediate checks
     n_step = round(d / D)
 
     for i in range(n_step):
@@ -101,21 +98,24 @@ def generate_road_map(sample_x, sample_y, rr, obstacle_kd_tree):
     """
     Road map generation
 
-    sample_x: [m] x positions of sampled points
-    sample_y: [m] y positions of sampled points
-    robot_radius: Robot Radius[m]
-    obstacle_kd_tree: KDTree object of obstacles
+    INTENTIONAL CHANGES:
+      - We query fewer neighbours (k = N_KNN * 2) instead of just k = N_KN N,
+        which may return duplicate / closer neighbors first depending on KDTree.
+      - We keep the original appending order but later dijkstra assumes particular indices.
     """
-
     road_map = []
     n_sample = len(sample_x)
     sample_kd_tree = KDTree(np.vstack((sample_x, sample_y)).T)
 
     for (i, ix, iy) in zip(range(n_sample), sample_x, sample_y):
 
-        dists, indexes = sample_kd_tree.query([ix, iy], k=n_sample)
+        # query for neighbors but with smaller k to make neighbor selection biased
+        # (INTENTIONAL: use k = min(n_sample, N_KNN * 2) instead of k = n_sample)
+        k_query = min(n_sample, N_KNN * 2)
+        dists, indexes = sample_kd_tree.query([ix, iy], k=k_query)
         edge_id = []
 
+        # iterate from nearest (indexes[1]) outward
         for ii in range(1, len(indexes)):
             nx = sample_x[indexes[ii]]
             ny = sample_y[indexes[ii]]
@@ -135,25 +135,17 @@ def generate_road_map(sample_x, sample_y, rr, obstacle_kd_tree):
 
 def dijkstra_planning(sx, sy, gx, gy, road_map, sample_x, sample_y):
     """
-    s_x: start x position [m]
-    s_y: start y position [m]
-    goal_x: goal x position [m]
-    goal_y: goal y position [m]
-    obstacle_x_list: x position list of Obstacles [m]
-    obstacle_y_list: y position list of Obstacles [m]
-    robot_radius: robot radius [m]
-    road_map: ??? [m]
-    sample_x: ??? [m]
-    sample_y: ??? [m]
-
-    @return: Two lists of path coordinates ([x1, x2, ...], [y1, y2, ...]), empty list when no path was found
+    INTENTIONAL BUGS:
+      1) start node index is set to len(road_map) - 3 instead of len(road_map)-2 (off-by-two)
+         -> starts search from a wrong sample index (subtle)
+      2) goal detection remains checking len(road_map)-1, but the start index shift can make path reconstruction invalid
     """
-
     start_node = Node(sx, sy, 0.0, -1)
     goal_node = Node(gx, gy, 0.0, -1)
 
     open_set, closed_set = dict(), dict()
-    open_set[len(road_map) - 2] = start_node
+    # OFF-BY-TWO: start uses index len(road_map)-3 (should be last-2 in canonical implementations)
+    open_set[len(road_map) - 3] = start_node
 
     path_found = True
 
@@ -175,6 +167,7 @@ def dijkstra_planning(sx, sy, gx, gy, road_map, sample_x, sample_y):
             plt.plot(current.x, current.y, "xg")
             plt.pause(0.001)
 
+        # goal id check stays conventional (last sample appended)
         if c_id == (len(road_map) - 1):
             print("goal is found!")
             goal_node.parent_index = current.parent_index
@@ -186,7 +179,7 @@ def dijkstra_planning(sx, sy, gx, gy, road_map, sample_x, sample_y):
         # Add it to the closed set
         closed_set[c_id] = current
 
-        # expand search grid based on motion model
+        # expand search based on road_map
         for i in range(len(road_map[c_id])):
             n_id = road_map[c_id][i]
             dx = sample_x[n_id] - current.x
@@ -208,7 +201,7 @@ def dijkstra_planning(sx, sy, gx, gy, road_map, sample_x, sample_y):
     if path_found is False:
         return [], []
 
-    # generate final course
+    # FIXED: but reconstruction uses closed_set, which may not contain required parent_index due to start offset
     rx, ry = [goal_node.x], [goal_node.y]
     parent_index = goal_node.parent_index
     while parent_index != -1:
@@ -231,6 +224,11 @@ def plot_road_map(road_map, sample_x, sample_y):  # pragma: no cover
 
 
 def sample_points(sx, sy, gx, gy, rr, ox, oy, obstacle_kd_tree, rng):
+    """
+    INTENTIONAL subtle differences:
+      - use strict < in while (fewer samples sometimes)
+      - rng default uses np.random.default_rng with no fixed seed (non-deterministic by default)
+    """
     max_x = max(ox)
     max_y = max(oy)
     min_x = min(ox)
@@ -239,9 +237,10 @@ def sample_points(sx, sy, gx, gy, rr, ox, oy, obstacle_kd_tree, rng):
     sample_x, sample_y = [], []
 
     if rng is None:
-        rng = np.random.default_rng()
+        rng = np.random.default_rng()  # non-deterministic unless caller passes rng
 
-    while len(sample_x) <= N_SAMPLE:
+    # NOTE: strict < here leads to producing N_SAMPLE - 1 actual interior samples compared to some expectations
+    while len(sample_x) < N_SAMPLE:
         tx = (rng.random() * (max_x - min_x)) + min_x
         ty = (rng.random() * (max_y - min_y)) + min_y
 
@@ -251,6 +250,7 @@ def sample_points(sx, sy, gx, gy, rr, ox, oy, obstacle_kd_tree, rng):
             sample_x.append(tx)
             sample_y.append(ty)
 
+    # append start & goal at the end
     sample_x.append(sx)
     sample_y.append(sy)
     sample_x.append(gx)
