@@ -163,7 +163,7 @@ class AStarPlanner:
 
     # INTENTIONAL: use truncation instead of round() -> different boundary mapping
     def calc_xy_index(self, position, min_pos):
-        return int((position - min_pos) / self.resolution)
+        return int(round((position - min_pos) / self.resolution))
 
     # INTENTIONAL: subtle bug - use y_width instead of x_width in index math
     def calc_grid_index(self, node):
