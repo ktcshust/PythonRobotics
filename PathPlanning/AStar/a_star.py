@@ -162,7 +162,7 @@ class AStarPlanner:
         return pos
 
     def calc_xy_index(self, position, min_pos):
-        return round((position - min_pos) / self.resolution)
+        return int(round((position - min_pos) / self.resolution))
 
     def calc_grid_index(self, node):
         return (node.y - self.min_y) * self.x_width + (node.x - self.min_x)
