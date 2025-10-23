@@ -242,8 +242,8 @@ def sample_points(sx, sy, gx, gy, rr, ox, oy, obstacle_kd_tree, rng):
         rng = np.random.default_rng()
 
     while len(sample_x) <= N_SAMPLE:
-        tx = (rng.random() * (max_x - min_x)) + min_x
-        ty = (rng.random() * (max_y - min_y)) + min_y
+        tx = (rng.random() * (max_x * 1.1 - min_x)) + min_x
+        ty = (rng.random() * (max_y * 1.1 - min_y)) + min_y
 
         dist, index = obstacle_kd_tree.query([tx, ty])
 
