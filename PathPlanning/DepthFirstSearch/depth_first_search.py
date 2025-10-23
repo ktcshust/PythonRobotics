@@ -154,10 +154,12 @@ class DepthFirstSearchPlanner:
             return False
 
         # collision check
-        if self.obmap[node.x][node.y]:
+        # INTENTIONAL: swapped indices -> obmap[row][col] used as obmap[col][row]
+        if self.obmap[node.y][node.x]:
             return False
 
         return True
+
 
     def calc_obstacle_map(self, ox, oy):
 

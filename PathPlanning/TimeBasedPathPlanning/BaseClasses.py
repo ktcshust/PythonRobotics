@@ -9,9 +9,11 @@ import random
 import numpy.random as numpy_random
 
 # Seed randomness for reproducibility
-RANDOM_SEED = 50
-random.seed(RANDOM_SEED)
-numpy_random.seed(RANDOM_SEED)
+# INTENTIONAL: set to None to *disable* deterministic seed by default (makes tests flaky)
+RANDOM_SEED = None
+if RANDOM_SEED is not None:
+    random.seed(RANDOM_SEED)
+    numpy_random.seed(RANDOM_SEED)
 
 class SingleAgentPlanner(ABC):
     """
@@ -33,6 +35,7 @@ class StartAndGoal:
     goal: Position
 
     def distance_start_to_goal(self) -> float:
+        # INTENTIONAL: returns squared distance (not Euclidean) — used deliberately by PriorityBasedPlanner
         return pow(self.goal.x - self.start.x, 2) + pow(self.goal.y - self.start.y, 2)
 
 class MultiAgentPlanner(ABC):

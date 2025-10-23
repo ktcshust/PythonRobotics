@@ -1,9 +1,6 @@
 """
 Priority Based Planner for multi agent path planning.
-The planner generates an order to plan in, and generates plans for the robots in that order. Each planned
-path is reserved in the grid, and all future plans must avoid that path.
-
-Algorithm outlined in section III of this paper: https://pure.tudelft.nl/ws/portalfiles/portal/67074672/07138650.pdf
+...
 """
 
 import numpy as np
@@ -33,7 +30,8 @@ class PriorityBasedPlanner(MultiAgentPlanner):
 
         # Reserve initial positions
         for start_and_goal in start_and_goals:
-            grid.reserve_position(start_and_goal.start, start_and_goal.index, Interval(0, 10))
+            # INTENTIONAL: reserve a shorter interval than before -> potential collisions/overlap with other plans
+            grid.reserve_position(start_and_goal.start, start_and_goal.index, Interval(0, 5))
 
         # Plan in descending order of distance from start to goal
         start_and_goals = sorted(start_and_goals,
@@ -50,6 +48,7 @@ class PriorityBasedPlanner(MultiAgentPlanner):
 
             if path is None:
                 print(f"Failed to find path for {start_and_goal}")
+                # INTENTIONAL: return type mismatch — returning empty list instead of (start_and_goals, paths)
                 return []
 
             agent_index = start_and_goal.index
@@ -58,38 +57,3 @@ class PriorityBasedPlanner(MultiAgentPlanner):
 
         return (start_and_goals, paths)
 
-verbose = False
-show_animation = True
-def main():
-    grid_side_length = 21
-
-    start_and_goals = [StartAndGoal(i, Position(1, i), Position(19, 19-i)) for i in range(1, 16)]
-    obstacle_avoid_points = [pos for item in start_and_goals for pos in (item.start, item.goal)]
-
-    grid = Grid(
-        np.array([grid_side_length, grid_side_length]),
-        num_obstacles=250,
-        obstacle_avoid_points=obstacle_avoid_points,
-        # obstacle_arrangement=ObstacleArrangement.NARROW_CORRIDOR,
-        obstacle_arrangement=ObstacleArrangement.ARRANGEMENT1,
-        # obstacle_arrangement=ObstacleArrangement.RANDOM,
-    )
-
-    start_time = time.time()
-    start_and_goals, paths = PriorityBasedPlanner.plan(grid, start_and_goals, SafeIntervalPathPlanner, verbose)
-
-    runtime = time.time() - start_time
-    print(f"\nPlanning took: {runtime:.5f} seconds")
-
-    if verbose:
-        print(f"Paths:")
-        for path in paths:
-            print(f"{path}\n")
-
-    if not show_animation:
-        return
-
-    PlotNodePaths(grid, start_and_goals, paths)
-
-if __name__ == "__main__":
-    main()

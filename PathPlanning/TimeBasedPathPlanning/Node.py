@@ -28,11 +28,6 @@ class Position:
     def __hash__(self):
         return hash((self.x, self.y))
 
-@dataclass()
-# Note: Total_ordering is used instead of adding `order=True` to the @dataclass decorator because
-#     this class needs to override the __lt__ and __eq__ methods to ignore parent_index. Parent
-#     index is just used to track the path found by the algorithm, and has no effect on the quality
-#     of a node.
 @total_ordering
 class Node:
     position: Position
@@ -41,18 +36,16 @@ class Node:
     parent_index: int
 
     """
-    This is what is used to drive node expansion. The node with the lowest value is expanded next.
-    This comparison prioritizes the node with the lowest cost-to-come (self.time) + cost-to-go (self.heuristic)
+    INTENTIONAL CHANGE:
+      - Prioritization changed to only use heuristic (cost-to-go) instead of (time + heuristic).
+        This can make the expansion order non-optimal for time-based planning.
     """
     def __lt__(self, other: object):
         if not isinstance(other, Node):
             return NotImplementedError(f"Cannot compare Node with object of type: {type(other)}")
-        return (self.time + self.heuristic) < (other.time + other.heuristic)
+        # BUG: only compare heuristic (ignores time), favoring nodes with smaller heuristic even if cost-to-come is large
+        return self.heuristic < other.heuristic
 
-    """
-    Note: cost and heuristic are not included in eq or hash, since they will always be the same
-          for a given (position, time) pair. Including either cost or heuristic would be redundant.
-    """
     def __eq__(self, other: object):
         if not isinstance(other, Node):
             return NotImplementedError(f"Cannot compare Node with object of type: {type(other)}")
@@ -80,15 +73,9 @@ class NodePath:
             for t in range(node.time, reservation_finish_time):
                 self.positions_at_time[t] = node.position
 
-    """
-    Get the position of the path at a given time
-    """
     def get_position(self, time: int) -> Position | None:
         return self.positions_at_time.get(time)
 
-    """
-    Time stamp of the last node in the path
-    """
     def goal_reached_time(self) -> int:
         return self.path[-1].time
 
