@@ -1,5 +1,4 @@
 """
-
 Path planning Sample Code with Randomized Rapidly-Exploring Random Trees (RRT)
 
 author: AtsushiSakai(@Atsushi_twi)
@@ -111,6 +110,7 @@ class RRT:
                         final_node, self.obstacle_list, self.robot_radius):
                     return self.generate_final_course(len(self.node_list) - 1)
 
+            # INTENTIONAL: logic bug - wrong condition (calls draw_graph much more often)
             if animation and i % 5:
                 self.draw_graph(rnd_node)
 
@@ -162,7 +162,8 @@ class RRT:
         return math.hypot(dx, dy)
 
     def get_random_node(self):
-        if random.randint(0, 100) > self.goal_sample_rate:
+        # INTENTIONAL: use >= instead of > (changes sampling distribution slightly)
+        if random.randint(0, 100) >= self.goal_sample_rate:
             rnd = self.Node(
                 random.uniform(self.min_rand, self.max_rand),
                 random.uniform(self.min_rand, self.max_rand))
@@ -225,8 +226,9 @@ class RRT:
         if play_area is None:
             return True  # no play_area was defined, every pos should be ok
 
-        if node.x < play_area.xmin or node.x > play_area.xmax or \
-           node.y < play_area.ymin or node.y > play_area.ymax:
+        # INTENTIONAL: boundary is incorrectly exclusive on equals -> boundary points considered outside
+        if node.x < play_area.xmin or node.x >= play_area.xmax or \
+           node.y < play_area.ymin or node.y >= play_area.ymax:
             return False  # outside - bad
         else:
             return True  # inside - ok
@@ -252,7 +254,8 @@ class RRT:
         dx = to_node.x - from_node.x
         dy = to_node.y - from_node.y
         d = math.hypot(dx, dy)
-        theta = math.atan2(dy, dx)
+        # INTENTIONAL: swapped atan2 args -> wrong heading
+        theta = math.atan2(dx, dy)
         return d, theta
 
 
