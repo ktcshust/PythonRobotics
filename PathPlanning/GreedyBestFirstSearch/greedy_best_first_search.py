@@ -193,8 +193,8 @@ class BestFirstSearchPlanner:
         print("max_x:", self.maxx)
         print("max_y:", self.maxy)
 
-        self.xwidth = round((self.maxx - self.minx) / self.reso)
-        self.ywidth = round((self.maxy - self.miny) / self.reso)
+        self.xwidth = round((self.maxx - self.minx) / self.reso) if ox else 0
+        self.ywidth = round((self.maxy - self.miny) / self.reso) if oy else 0
         print("x_width:", self.xwidth)
         print("y_width:", self.ywidth)
 
