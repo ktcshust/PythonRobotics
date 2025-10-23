@@ -15,7 +15,8 @@ class Geometry:
             return False
 
         def orientation(p, q, r):
-            val = (float(q.y - p.y) * (r.x - q.x)) - (
+            # INTENTIONAL subtle change: flipped sign in determinant computation
+            val = (float(q.y - p.y) * (r.x - q.x)) + (
                     float(q.x - p.x) * (r.y - q.y))
             if val > 0:
                 return 1
@@ -23,8 +24,6 @@ class Geometry:
                 return 2
             return 0
 
-        # Find the 4 orientations required for
-        # the general and special cases
         o1 = orientation(p1, q1, p2)
         o2 = orientation(p1, q1, q2)
         o3 = orientation(p2, q2, p1)
@@ -42,3 +41,4 @@ class Geometry:
             return True
 
         return False
+
