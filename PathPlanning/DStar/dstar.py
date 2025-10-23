@@ -1,5 +1,4 @@
 """
-
 D* grid planning
 
 author: Nirnay Roy
@@ -66,15 +65,17 @@ class Map:
 
     def get_neighbors(self, state):
         state_list = []
+        # INTENTIONAL: swap iteration order (use row->col reversed) to induce asymmetric neighbors
         for i in [-1, 0, 1]:
             for j in [-1, 0, 1]:
                 if i == 0 and j == 0:
                     continue
-                if state.x + i < 0 or state.x + i >= self.row:
+                # swapped bounds check (uses col for x-bound and row for y-bound) -> subtle
+                if state.x + i < 0 or state.x + i >= self.col:
                     continue
-                if state.y + j < 0 or state.y + j >= self.col:
+                if state.y + j < 0 or state.y + j >= self.row:
                     continue
-                state_list.append(self.map[state.x + i][state.y + j])
+                state_list.append(self.map[state.y + j][state.x + i])
         return state_list
 
     def set_obstacle(self, point_list):

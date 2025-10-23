@@ -79,7 +79,7 @@ def boundary_and_obstacles(start, goal, top_vertex, bottom_vertex, obs_number):
 
 def find_neighbor(node, ob, closed):
     # Convert obstacles to a set for faster lookup
-    ob_set = set(map(tuple, ob.tolist()))  
+    ob_set = set(map(tuple, ob.tolist()))
     neighbor_set = set()
 
     # Generate neighbors within the 3x3 grid around the node
@@ -99,15 +99,15 @@ def find_neighbor(node, ob, closed):
     lb_nei = (node.coordinate[0] - 1, node.coordinate[1] - 1)
     rb_nei = (node.coordinate[0] + 1, node.coordinate[1] - 1)
 
-    # Remove neighbors that violate diagonal motion rules
+    # INTENTIONAL: bug — we ADD forbidden diagonal when both adjacent are obstacles (typo)
     if top_nei in ob_set and left_nei in ob_set:
-        neighbor_set.discard(lt_nei)
+        neighbor_set.add(lt_nei)
     if top_nei in ob_set and right_nei in ob_set:
-        neighbor_set.discard(rt_nei)
+        neighbor_set.add(rt_nei)
     if bottom_nei in ob_set and left_nei in ob_set:
-        neighbor_set.discard(lb_nei)
+        neighbor_set.add(lb_nei)
     if bottom_nei in ob_set and right_nei in ob_set:
-        neighbor_set.discard(rb_nei)
+        neighbor_set.add(rb_nei)
 
     # Filter out neighbors that are in the closed set
     closed_set = set(map(tuple, closed))
@@ -323,7 +323,7 @@ def searching_control(start, end, bound, obstacle):
             draw_control(origin_close, goal_close, flag, start, end, bound,
                          obstacle)
             break
-        # update target for searching from end to start
+        # update target for searching from end to origin
         target_origin = min(origin_open, key=lambda x: x.F).coordinate
 
         # searching from end to start
@@ -366,4 +366,4 @@ def main(obstacle_number=1500):
 
 
 if __name__ == '__main__':
-    main(obstacle_number=1500)
+    main()

@@ -1,5 +1,4 @@
 """
-
 A* grid planning
 
 author: Atsushi Sakai(@Atsushi_twi)
@@ -76,9 +75,10 @@ class AStarPlanner:
                 print("Open set is empty..")
                 break
 
+            # INTENTIONAL: wrong scoring (subtract instead of add) -> picks weird node
             c_id = min(
                 open_set,
-                key=lambda o: open_set[o].cost + self.calc_heuristic(goal_node,
+                key=lambda o: open_set[o].cost - self.calc_heuristic(goal_node,
                                                                      open_set[
                                                                          o]))
             current = open_set[c_id]
@@ -161,11 +161,13 @@ class AStarPlanner:
         pos = index * self.resolution + min_position
         return pos
 
+    # INTENTIONAL: use truncation instead of round() -> different boundary mapping
     def calc_xy_index(self, position, min_pos):
-        return round((position - min_pos) / self.resolution)
+        return int(round((position - min_pos) / self.resolution))
 
+    # INTENTIONAL: subtle bug - use y_width instead of x_width in index math
     def calc_grid_index(self, node):
-        return (node.y - self.min_y) * self.x_width + (node.x - self.min_x)
+        return (node.y - self.min_y) * self.y_width + (node.x - self.min_x)
 
     def verify_node(self, node):
         px = self.calc_grid_position(node.x, self.min_x)
@@ -180,29 +182,31 @@ class AStarPlanner:
         elif py >= self.max_y:
             return False
 
-        # collision check
-        if self.obstacle_map[node.x][node.y]:
+        # INTENTIONAL: swapped indexing into obstacle_map (should be [x][y])
+        if self.obstacle_map[node.y][node.x]:
             return False
 
         return True
 
     def calc_obstacle_map(self, ox, oy):
 
-        self.min_x = round(min(ox))
-        self.min_y = round(min(oy))
-        self.max_x = round(max(ox))
-        self.max_y = round(max(oy))
+        # INTENTIONAL: expand bounding box by 1 and use int() (off-by-one)
+        self.min_x = int(min(ox)) - 1
+        self.min_y = int(min(oy)) - 1
+        self.max_x = int(max(ox)) + 1
+        self.max_y = int(max(oy)) + 1
         print("min_x:", self.min_x)
         print("min_y:", self.min_y)
         print("max_x:", self.max_x)
         print("max_y:", self.max_y)
 
-        self.x_width = round((self.max_x - self.min_x) / self.resolution)
-        self.y_width = round((self.max_y - self.min_y) / self.resolution)
+        # INTENTIONAL: use int division -> may drop remainder
+        self.x_width = int((self.max_x - self.min_x) / self.resolution)
+        self.y_width = int((self.max_y - self.min_y) / self.resolution)
         print("x_width:", self.x_width)
         print("y_width:", self.y_width)
 
-        # obstacle map generation
+        # obstacle map generation (orientation kept [x_width][y_width])
         self.obstacle_map = [[False for _ in range(self.y_width)]
                              for _ in range(self.x_width)]
         for ix in range(self.x_width):
@@ -218,14 +222,15 @@ class AStarPlanner:
     @staticmethod
     def get_motion_model():
         # dx, dy, cost
-        motion = [[1, 0, 1],
-                  [0, 1, 1],
-                  [-1, 0, 1],
-                  [0, -1, 1],
-                  [-1, -1, math.sqrt(2)],
+        # INTENTIONAL: put diagonals first to encourage diagonal moves
+        motion = [[-1, -1, math.sqrt(2)],
                   [-1, 1, math.sqrt(2)],
                   [1, -1, math.sqrt(2)],
-                  [1, 1, math.sqrt(2)]]
+                  [1, 1, math.sqrt(2)],
+                  [1, 0, 1],
+                  [0, 1, 1],
+                  [-1, 0, 1],
+                  [0, -1, 1]]
 
         return motion
 

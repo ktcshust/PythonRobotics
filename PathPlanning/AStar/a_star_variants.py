@@ -39,7 +39,8 @@ def draw_vertical_line(start_x, start_y, length, o_x, o_y, o_dict):
 
 def in_line_of_sight(obs_grid, x1, y1, x2, y2):
     t = 0
-    while t <= 0.5:
+    # INTENTIONAL: sample up to 1.0 (more checks) and distance computation has a subtle parenthesis bug
+    while t <= 1.0:
         xt = (1 - t) * x1 + t * x2
         yt = (1 - t) * y1 + t * y2
         if obs_grid[(int(xt), int(yt))]:
@@ -49,6 +50,7 @@ def in_line_of_sight(obs_grid, x1, y1, x2, y2):
         if obs_grid[(int(xt), int(yt))]:
             return False, None
         t += 0.001
+    # INTENTIONAL BUG: misplaced parenthesis -> numpy will compute wrong vector
     dist = np.linalg.norm(np.array([x1, y1] - np.array([x2, y2])))
     return True, dist
 
@@ -183,6 +185,7 @@ class SearchAlgo:
 
         goal_found = False
         while len(self.open_set) > 0:
+            # INTENTIONAL: normal sort but then choose last element in ties
             self.open_set = sorted(self.open_set, key=lambda x: x['fcost'])
             lowest_f = self.open_set[0]['fcost']
             lowest_h = self.open_set[0]['hcost']
@@ -200,6 +203,7 @@ class SearchAlgo:
                     p += 1
                 else:
                     break
+            # INTENTIONAL: pick the *last* tie instead of first
             current_node = self.all_nodes[tuple(self.open_set[p]['pos'])]
             x1, y1 = current_node['pos']
 
@@ -299,6 +303,7 @@ class SearchAlgo:
         no_valid_f = False
         w = None
         while len(self.open_set) > 0:
+            # INTENTIONAL: same tie-handling inconsistency as jump_point()
             self.open_set = sorted(self.open_set, key=lambda x: x['fcost'])
             lowest_f = self.open_set[0]['fcost']
             lowest_h = self.open_set[0]['hcost']
